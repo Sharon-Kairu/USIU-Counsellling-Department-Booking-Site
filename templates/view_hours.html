@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | USIU Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='view_hours.css') }}">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc, addDoc,updateDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        // Display user info and load inventory
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log(user.uid);
+                currentUser=user;
+                const userId = user.uid;
+                await displayUserName(userId);
+                loadAvailableHours();
+            } else {
+                window.location.href = "/login";
+            }
+        });
+
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    username.textContent = userData.fullName || "User";
+                } else {
+                    console.error("No user document found!");
+                    username.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                username.textContent = "User";
+            }
+        }
+
+        async function loadAvailableHours() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const counsellorId = urlParams.get("counsellorId");
+
+            if (!counsellorId) {
+                document.getElementById("hours_list").innerHTML = "Invalid counsellor ID.";
+                return;
+            }
+
+            const counsellorDocRef = doc(db, "counsellors", counsellorId);
+            const counsellorDocSnap = await getDoc(counsellorDocRef);
+
+            if (counsellorDocSnap.exists()) {
+                const data = counsellorDocSnap.data();
+                const availableHours = data.availableHours || {};
+
+                let output = `<table border="1">
+                                <thead>
+                                    <tr>
+                                        <th>Day</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                for (const [day, hours] of Object.entries(availableHours)) {
+                    hours.forEach((hour, index) => {
+                        const statusText = hour.booked ? "Booked" : "Available";
+                        const statusColor = hour.booked ? "red" : "#43eb15";
+
+
+                        output += `
+                            <tr>
+                                <td>${day}</td>
+                                <td>${hour.time}</td>
+                                <td style="color: ${statusColor}; font-weight: bold;">${hour.booked ? "Booked" : "Available"}</td>
+                                <td>
+                                    ${!hour.booked ? `<button class="bookAppointmentBt" onclick="bookAppointment('${counsellorId}', '${day}', '${hour.time}')">Book Appointment</button>` : "N/A"}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                output += `</tbody></table>`;
+
+                document.getElementById("hours_list").innerHTML = output;
+            } else {
+                document.getElementById("hours_list").innerHTML = "Counsellor data not found.";
+            }
+        }
+
+        // Function to handle booking an appointment
+        window.bookAppointment = function bookAppointment(counsellorId, day, time) {
+            const modal = document.getElementById("bookAppointmentModal");
+
+            // Check if the modal element exists
+            if (modal) {
+                console.log("Modal found")
+                // Set the selected date and time in the modal
+                const modalHeader = modal.querySelector("h2");
+                if (modalHeader) {
+                    
+                    modalHeader.innerHTML = `Book Appointment for ${day} at ${time}`;
+                } else {
+                    console.error("Modal header element not found.");
+                }
+
+                window.selectedCounsellorId = counsellorId;
+                window.selectedDay = day;
+                window.selectedTime = time;
+
+                // Show the modal
+                modal.style.display = "block";
+            } else {
+                console.error("Modal element not found.");
+            }
+        }
+
+        // Close modal when clicking cancel button
+        document.getElementById("cancelBt").addEventListener("click", function() {
+            document.getElementById("bookAppointmentModal").style.display = "none";
+        });
+
+        // Handle form submission
+        document.getElementById('bookAppointmentForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const startDate = new Date(document.getElementById('startDate').value);
+            const numberOfSessions = parseInt(document.getElementById('numberOfSessions').value);
+            const intervalWeeks = parseInt(document.getElementById('interval').value);
+            const counsellorId = window.selectedCounsellorId;
+            const day = window.selectedDay;
+            const time = window.selectedTime;
+
+            if (!startDate || !numberOfSessions || !intervalWeeks) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            // Validate that the selected date matches the chosen day
+            const selectedDayIndex = startDate.getDay();
+            const expectedDayIndex = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day);
+            
+            if (selectedDayIndex !== expectedDayIndex) {
+                alert(`The selected date does not match ${day}. Please select a correct date.`);
+                return;
+            }
+
+            try {
+                // Reference to appointments and sessions
+                const appointmentsRef = collection(db, 'appointments');
+                const sessionsRef = collection(db, 'sessions');
+
+                // Store main appointment
+                const newAppointmentRef = await addDoc(appointmentsRef, {
+                    counsellorId,
+                    day,
+                    time,
+                    startDate: startDate.toISOString(),
+                    numberOfSessions,
+                    intervalWeeks,
+                    userId: currentUser.uid,
+                    status: 'pending'
+                });
+
+                // Store individual sessions
+                let sessionDate = new Date(startDate);
+                for (let i = 0; i < numberOfSessions; i++) {
+                    await addDoc(sessionsRef, {
+                        appointmentId: newAppointmentRef.id,
+                        counsellorId,
+                        userId: currentUser.uid,
+                        sessionDate: sessionDate.toISOString(),
+                        time,
+                        status: 'scheduled'
+                    });
+                    sessionDate.setDate(sessionDate.getDate() + intervalWeeks * 7);
+                }
+
+                const counsellorDocRef = doc(db, "counsellors", counsellorId);
+                const counsellorDocSnap = await getDoc(counsellorDocRef);
+
+                if (counsellorDocSnap.exists()) {
+                    const counsellorData = counsellorDocSnap.data();
+                    const availableHours = counsellorData.availableHours || {};
+
+                    // Find the correct time slot and mark it as booked
+                    if (availableHours[day]) {
+                        availableHours[day] = availableHours[day].map(slot => 
+                            slot.time === time ? { ...slot, booked: true } : slot
+                        );
+
+                        // Update the Firestore document
+                        await updateDoc(counsellorDocRef, { availableHours });
+                    }
+                }
+
+
+                alert('Appointment and sessions booked successfully!');
+                window.location.reload();
+            } catch (error) {
+                alert('Error booking appointment: ' + error.message);
+            }
+        });
+
+    </script>
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="USIU Logo" id="logo">
+        <h2 class="yellowtext" id="header">USIU COUNSELLING DEPARTMENT</h2>
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class="yellowtext" id="username"></h2>
+            <ul>
+                <li><a href="/client"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/bookappointment" class="active"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
+                <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"></a>Change User Details</h3>
+        </nav>
+
+        <!-- Main content -->
+        <div class="main-content" id="maincontent">
+            <h2>Available Hours</h2>
+            <div class="available_hours">
+                <div id="hours_list">Loading...</div>
+                <a href="/bookappointment">Back</a>
+            </div>
+            <div class="modal" id="bookAppointmentModal">
+                
+                <div class="modal-content">
+                    <form id="bookAppointmentForm">
+                        <h2></h2>
+                        <label for="startDate">Start Date:</label>
+                        <input type="date" id="startDate" required>
+                        <label for="numberOfSessions">Number of Sessions:</label>
+                        <input type="number" id="numberOfSessions" required>
+                        <label for="interval">Interval of Sessions in weeks (Eg have a session after 1 week):</label>
+                        <input type="number" id="interval" required>
+                        <button type="submit" id="bookBt">Book</button>
+                        <button type="button" id="cancelBt">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

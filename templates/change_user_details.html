@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='change_user_details.css') }}">
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore,collection, query, where, getDocs, doc, getDoc,Timestamp, updateDoc, setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);// Firestore should be initialized here
+
+
+        onAuthStateChanged(auth, async (user) => {// Fetches the quote
+            if (user) {
+                        console.log(user.uid);
+                        const userId = user.uid;
+                        
+                        await displayUserName(userId);
+
+                        
+                        try{
+                            const userRef=doc(db, 'users', userId);
+                            const userDoc = await getDoc(userRef);
+                            if(userDoc.exists()){
+                                const userData=userDoc.data();
+                                document.getElementById('fullnameDisplay').textContent=userData.fullName;
+                                document.getElementById('emailDisplay').textContent=userData.email;
+                                document.getElementById('numberDisplay').textContent=userData.phoneNumber;
+                            }
+                            else{
+                                console.log('No such document!');
+                            }
+                        }
+                        catch(error){
+                            console.error('Error getting document:', error);
+                        }
+                        
+                        
+                        
+                    } else {
+                        window.location.href = "/login";
+                    }
+            })
+
+            async function displayUserName(userId){
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                const userData = userDoc.data();
+                document.getElementById('username').textContent = userData.fullName;
+            }
+
+            window.editDetails= async function editDetails(userId){
+                const modal=document.getElementById('editProfileModal');
+
+                if (modal){
+                    modal.style.display='block';
+
+                    document.getElementById('fullname').value = document.getElementById('fullnameDisplay').textContent;
+                    document.getElementById('email').value = document.getElementById('emailDisplay').textContent;
+                    document.getElementById('phoneNumber').value = document.getElementById('numberDisplay').textContent;
+                    }
+            }
+
+            document.getElementById('profileForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+        
+                const fullname = document.getElementById('fullname').value;
+                const email = document.getElementById('email').value;
+                const phoneNumber = document.getElementById('phoneNumber').value;
+                const currentPassword = prompt("Enter your current password to proceed:");
+                const newPassword = document.getElementById('password').value;
+        
+                try {
+                    const user = auth.currentUser;
+        
+                    if (user) {
+                        // Reauthenticate the user
+                        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                        await reauthenticateWithCredential(user, credential);
+        
+                        // Update Firestore
+                        await updateDoc(doc(db, "users", user.uid), {
+                            fullName: fullname,
+                            email: email,
+                            phoneNumber: phoneNumber
+                        });
+        
+                        // Update password if provided
+                        if (newPassword) {
+                            if (newPassword.length < 6) {
+                                alert("Password should be at least 6 characters.");
+                                return;
+                            }
+                            await updatePassword(user, newPassword);
+                        }
+        
+                        alert("Profile updated successfully!");
+        
+                        const modal = document.getElementById('editProfileModal');
+                        modal.style.display = 'none';
+        
+                        document.getElementById('fullnameDisplay').textContent = fullname;
+                        document.getElementById('emailDisplay').textContent = email;
+
+                        updateUserDetails();
+                    }
+                } catch (error) {
+                    console.error("Error updating profile: ", error);
+                    alert("An error occurred while updating the profile. Please try again.");
+                }
+            });
+
+            document.getElementById('cancelBt').addEventListener('click', () => {
+                const modal = document.getElementById('editProfileModal');
+                modal.style.display = 'none';
+            });
+        
+    
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username"></h2>
+
+            <ul>
+                <li><a href="/client" class="active"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/bookappointment"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
+                <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+
+            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+        </nav>
+
+        <div class="main-content">
+            <div class="user-details" id="userDetails">
+                <h1>My Profile</h1>
+               
+                <div class="details">
+                    <p><strong>Full Name:</strong></p>
+                    <p class="detail"><span id="fullnameDisplay"></span></p>
+                    <p><strong>Email:</strong></p>
+                    <p class="detail"><span id="emailDisplay"></span></p>
+                    <p><strong>Phone Number:</strong></p>
+                    <p class="detail"><span id="numberDisplay"></span></p>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="editDetailesBt" onclick="editDetails()">Edit Your Details</button>
+                    <button class="delete-btn" id="delete">Delete Profile</button>
+                </div>
+            </div>
+
+                <!-- Modal for editing profile -->
+            <div id="editProfileModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn" id="closeModalBtn">&times;</span>
+                    <h1>Update Your Profile</h1>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="fullname">Full Name</label>
+                            <input type="text" id="fullname" name="fullname" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phoneNumber">Phone Number</label>
+                            <input type="text" id="phoneNumber" name="phoneNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password">
+                        </div>
+                        <button class="update-btn" id="updateBt" type="submit">Update</button>
+                        <button class="cancel-btn" id="cancelBt">Cancel</button>
+                    </form>
+                </div>
+                
+            </div>
+
+
+        </div>
+
+       
+    </div>
+
+    
+
+   
+</body>
+</html>

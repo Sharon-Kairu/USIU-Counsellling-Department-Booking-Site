@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='client.css') }}">
+    <script type="module">
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore,collection, query, where, getDocs, doc, getDoc,Timestamp, updateDoc, setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);// Firestore should be initialized here
+
+        let currentUserId = null;
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            fetchQuote();
+            onAuthStateChanged(auth, async (user) => {// Fetches the quote
+                if (user) {
+                            console.log(user.uid);
+                            const userId = user.uid;
+                            currentUserId = userId;
+                            await displayUserName(userId);
+                            getSessions(userId);
+                            
+                            
+                        } else {
+                            window.location.href = "/login";
+                        }
+                })
+            
+        });
+
+        
+        async function fetchQuote() {
+            try {
+                const response = await fetch('/get_quote');
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('quote').textContent = "Error fetching quote.";
+                    document.getElementById('author').textContent = "";
+                } else {
+                    document.getElementById('quote').textContent = `"${data.quote}"`;
+                    document.getElementById('author').textContent = `- ${data.author}`;
+                }
+            } catch (error) {
+                console.error('Error fetching quote:', error);
+               
+                }
+            }
+        
+
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    username.textContent = userData.fullName || "User";
+                } else {
+                    console.error("No user document found!");
+                    userInfoElement.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                userInfoElement.textContent = "User";
+            }
+        }
+        
+        let currentSessionId = null;
+        let currentCounsellorId = null;
+
+        async function getSessions(userId) {
+    const session = document.getElementById('session_details');
+    session.innerHTML = ""; // Clear previous session data
+
+    try {
+        const sessionsRef = query(collection(db, "sessions"), where("userId", "==", userId));
+        const querySnapshot = await getDocs(sessionsRef); // Fetch session data
+
+        let sessionsArray = []; // Array to store session data
+        const now = new Date(); // Get the current date and time
+
+        for (const docSnap of querySnapshot.docs) { 
+            const sessionData = docSnap.data();
+            let sessionId = docSnap.id;
+            currentSessionId = sessionId;
+            let rawDate = sessionData.sessionDate;
+            let time = sessionData.time;
+            let status = sessionData.status;
+            let counsellorId = sessionData.counsellorId;
+            currentCounsellorId = counsellorId;
+
+            // Fetch counsellor name
+            let counsellorName = "Unknown"; // Default if not found
+            if (counsellorId) {
+                const counsellorDocSnap = await getDoc(doc(db, "counsellors", counsellorId));
+                if (counsellorDocSnap.exists()) {
+                    counsellorName = counsellorDocSnap.data().fullName || "Unknown";
+                }
+            }
+
+            // Convert Firestore Timestamp to JavaScript Date
+            let dateObj = rawDate instanceof Timestamp ? rawDate.toDate() : new Date(rawDate);
+
+            // Extract session start time
+            let sessionStartTime = extractStartTime(dateObj, time);
+
+            // **Filter out past sessions**
+            if (sessionStartTime > now) {
+                let formattedDate = dateObj.toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false
+                });
+
+                sessionsArray.push({ formattedDate, dateObj, time, status, counsellorName, sessionId });
+            }
+        }
+
+        // Sort sessions by date in ascending order
+        sessionsArray.sort((a, b) => a.dateObj - b.dateObj);
+
+        // Clear table and add sorted upcoming sessions
+        session.innerHTML = "";
+        if (sessionsArray.length === 0) {
+            session.innerHTML = `<tr><td colspan="5" style="text-align:center;">No upcoming sessions</td></tr>`;
+        } else {
+            sessionsArray.forEach(({ formattedDate, time, status, counsellorName, sessionId }) => {
+                const row = document.createElement('tr');
+
+                // Determine text color for status
+                let statusColor = status.toLowerCase() === "scheduled" ? "green" : "red";
+                let isCanceled = status.toLowerCase() === "canceled";
+
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${time}</td>
+                    <td>${counsellorName}</td>
+                    <td style="color: ${statusColor}; font-weight: bold;">${status}</td>
+                    <td>
+                        <button id="cancelSessionBt" onclick="cancelsession('${sessionId}', '${formattedDate}')" ${isCanceled ? "disabled" : ""}>
+                            Cancel Session
+                        </button>
+                    </td>
+                `;
+                session.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching sessions:', error);
+    }
+}
+
+/**
+ * Converts a date and time string (e.g., "8:00 AM - 9:00 AM") into a Date object.
+ */
+function extractStartTime(dateObj, sessionTime) {
+    let [startTime, period] = sessionTime.split(" - ")[0].split(" ");
+    let [hours, minutes] = startTime.split(":").map(Number);
+
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+
+    dateObj.setHours(hours, minutes, 0, 0);
+    return dateObj;
+}
+
+
+
+        window.cancelsession = function cancelsession(sessionId,formattedDate) {
+            
+            const cancelmodal = document.getElementById('modal');
+            if (cancelmodal) {
+                const modalheader=modal.querySelector('h2');
+                modalheader.innerHTML=`Cancel session scheduled for ${formattedDate}`;
+                cancelmodal.style.display = 'block';
+                console.log("Modal displayed for session:", sessionId);
+            } else {
+                console.error("Modal not found");
+            }
+        };
+
+        document.getElementById('reason').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Prevent default form submission behavior
+    
+    const cancelReason = document.getElementById('reasonforcancelling').value;
+    
+    if (!currentSessionId) {
+        console.error("No session ID available for cancellation.");
+        alert("An error occurred. Please try again.");
+        return;
+    }
+
+    if (cancelReason) {
+        try {
+            const sessionDocRef = doc(db, "sessions", currentSessionId);
+            const sessionDocSnap = await getDoc(sessionDocRef);
+
+            if (sessionDocSnap.exists()) {
+                // Update session status to "canceled"
+                await updateDoc(sessionDocRef, {
+                    status: "canceled"
+                });
+
+                // Store cancellation reason in Client_Reasons collection
+                const reasonRef = doc(db, "Client_Reasons", currentSessionId);
+                await setDoc(reasonRef, {
+                    sessionId: currentSessionId,
+                    userId:currentUserId,
+                    counsellorId: currentCounsellorId,
+                    cancelReason,
+                    timestamp: serverTimestamp()
+                });
+
+                alert("Session successfully canceled.");
+                document.getElementById('modal').style.display = 'none'; // Close modal
+                getSessions(currentUserId); // Refresh session list
+            } else {
+                console.error("Session not found in database.");
+            }
+        } catch (error) {
+            console.error("Error canceling session:", error);
+            alert("Failed to cancel the session. Please try again.");
+        }
+    } else {
+        alert("Please provide a reason for cancellation.");
+    }
+});
+
+// Close modal on back button click
+document.getElementById('back').addEventListener('click', function() {
+    document.getElementById('modal').style.display = 'none';
+});
+
+        
+
+   
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username"></h2>
+
+            <ul>
+                <li><a href="/client" class="active"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/bookappointment"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
+                <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+
+            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"> Chenge User Details</a>
+        </nav>
+        </nav>
+
+        <!-- Main content -->
+         <div class="main-content" id="maincontent">
+            <div class="quoteContainer">
+                <h1>Quote of the day</h1>
+                <h2 class="yellowtext" id="quote">"Loading..." </h2>
+                <h3 class="bluetext" id="author"></h3> 
+            </div>
+
+            <div class="sessionDetails">
+                <h1 class="yellowtext">Upcoming Session</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Counsellor</th>
+                            <th>Status</th>
+                            <th>Update</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="session_details"></tbody>
+                </table>
+                   
+            </div>
+
+            <div id="modal">
+                <form class="modal-content" id="reason">
+                    <h2></h2>
+                    <label for="reasonforcancelling">Your Counsellor would like to know why you'd want to cancel the session:</label>
+                    <input type="text" id="reasonforcancelling">
+                </br>
+                    <button id="confirmCancelBt" type="submit">Confirm </button>
+                    <button id="back">Back</button>
+            </form>
+            </div>
+         </div>
+    </div>
+
+    
+
+   
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='add_a_member.css') }}">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.firebasestorage.app",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Function to generate available hours (8 AM - 5 PM)
+        function generateAvailableHours(selectedDays) {
+            const schedule = {};
+
+            selectedDays.forEach(day => {
+                schedule[day] = []; // Initialize array for each day
+
+                for (let i = 8; i < 17; i++) { // 8 AM to 4 PM
+                    let startTime = `${i}:00 AM`;
+                    let endTime = `${i + 1}:00 AM`;
+
+                    if (i >= 12) {
+                        startTime = `${i === 12 ? 12 : i - 12}:00 PM`;
+                        endTime = `${i + 1 === 12 ? 12 : (i + 1) - 12}:00 PM`;
+                    }
+
+                    schedule[day].push({ time: `${startTime} - ${endTime}`, booked: false });
+                }
+            });
+
+            return schedule;
+        }
+
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('add_a_member_form').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const fullName = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const phoneNumber = document.getElementById('number').value;
+                const role=document.getElementById('role').value;
+
+                let selectedDays = [];
+                document.querySelectorAll('input[name="days"]:checked').forEach(checkbox => {
+                    selectedDays.push(checkbox.value);
+                });
+
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then(async (userCredential) => {
+                        const user = userCredential.user;
+                        console.log('Sign up successful:', user);
+
+                        await setDoc(doc(db, 'users', user.uid), {
+                            fullName: fullName,
+                            email: email,
+                            phoneNumber: phoneNumber,
+                            role:role,
+                            createdAt: new Date().toISOString()
+                        });
+
+                        if(role=="counsellor"){
+                            await setDoc(doc(db, 'counsellors', user.uid), {
+                                counsellorId: user.uid,
+                                fullName: fullName,
+                                email: email,
+                                availableDays: selectedDays,
+                                availableHours: generateAvailableHours(selectedDays)
+                            });
+                        }
+                        
+
+                      
+                        messageContainer.textContent = "User has been registered successfully!";
+                        messageContainer.style.color = "green";
+                        messageContainer.style.display = "block";
+
+                        // Redirect to the admin page after 3 seconds
+                        setTimeout(() => {
+                            window.location.href = "/admin";
+                        }, 3000); 
+                    })
+                    .catch((error) => {
+                        const errorMessage = error.message;
+                        console.error('Error during sign up:', error.code, error.message);
+                        document.getElementById('error-message').textContent = errorMessage;
+                    });
+            });
+        });
+
+        
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username">Sharon Kairu</h2>
+
+            <ul>
+                <li><a href="/admin"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/add_a_member" class="active"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text">Add a member</span></a></li>
+                <li><a href="/remove_a_member"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text">Remove a member</span></a></li>
+            </ul>
+
+            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+        </nav>
+
+        <!--Main Content-->
+        <div class="main-content" id="maincontent">
+            <h2 >Add a member to the department</h2>
+            <div class="form-container">
+                <form id="add_a_member_form">
+                    <label for="name">Full Name:</label>
+                    <input type="text" id="name" required>
+                    <br/>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" required>
+                    <br/>
+                    <label for="number">Phone Number:</label>
+                    <input type="text" id="number" required>
+                    <br/>
+
+                    <label for="role">Role</label>
+                    <select id="role">
+                        <option value="admin">Administrator</option>
+                        <option value="counsellor">Counsellor</option>
+                        
+                    </select>
+                    <br>
+                    
+                    <label>Select Available Days:</label><br>
+                    <input type="checkbox" name="days" value="Monday"> Monday<br>
+                    <input type="checkbox" name="days" value="Tuesday"> Tuesday<br>
+                    <input type="checkbox" name="days" value="Wednesday"> Wednesday<br>
+                    <input type="checkbox" name="days" value="Thursday"> Thursday<br>
+                    <input type="checkbox" name="days" value="Friday"> Friday<br>
+                    <input type="checkbox" name="days" value="Saturday"> Saturday<br>
+                    <input type="checkbox" name="days" value="Sunday"> Sunday<br>
+
+                    <br>
+                    <br>
+
+                    <label for="password">Temporary Password</label>
+                    <input type="password" id="password" required>
+                    
+
+                    <button type="submit" id="add_a_memberBt">Register new member</button>
+                </form>
+
+                <p id="messageContainer" style="display: none; color: green;"></p>
+                
+
+            </div>
+        </div>
+
+    </div>
+
+    
+
+   
+</body>
+</html>

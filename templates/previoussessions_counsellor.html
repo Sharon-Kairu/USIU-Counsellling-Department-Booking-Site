@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='previoussessions_counsellor.css') }}">
+    <script type="module">
+         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, doc, getDoc,Timestamp,updateDoc,serverTimestamp,setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                
+                const userId = user.uid;
+                currentUser=userId;
+                console.log(userId)
+                await displayUserName(userId);
+                await fetchPastSessions(userId);
+            } else {
+                window.location.href = "/login";
+            }
+        });
+
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    username.textContent = userDocSnap.data().fullName || "User";
+                } else {
+                    username.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                username.textContent = "User";
+            }
+        }
+        let currentsession=null;
+
+        async function fetchPastSessions(userId) {
+            const sessionTable = document.getElementById('session_details');
+            sessionTable.innerHTML = ""; // Clear previous data
+
+            try {
+                const sessionsRef = query(collection(db, "sessions"), where("counsellorId", "==", userId));
+                const querySnapshot = await getDocs(sessionsRef);
+
+                let sessionsArray = [];
+                const now = new Date();
+
+                for (const docSnap of querySnapshot.docs) {
+                    const sessionData = docSnap.data();
+                    let rawDate = sessionData.sessionDate;
+                    let sessionTime = sessionData.time; // E.g., "8:00 AM - 9:00 AM"
+                    let status = sessionData.status;
+                    let counsellorId = sessionData.counsellorId;
+                    let sessionId = docSnap.id;
+                    currentsession=sessionId
+
+                    // Fetch counsellor name
+                    let clientName = "Unknown";
+                    if (clientId) {
+                        const clientRef = doc(db, 'users', clientId);
+                        const clientDoc = await getDoc(clientRef);
+                        if (clientDoc.exists()) {
+                            const clientData = clientDoc.data();
+                            clientName = clientData.fullName;
+                                        }
+                    }
+
+                    // Convert Firestore Timestamp to JavaScript Date
+                    let dateObj = rawDate instanceof Timestamp ? rawDate.toDate() : new Date(rawDate);
+
+                    // Extract session start time
+                    let sessionStartTime = extractStartTime(dateObj, sessionTime);
+
+                    // Check if the session has passed
+                    if (sessionStartTime < now) {
+                        if (status !== "past") {
+                            // Update Firestore to set status as "past"
+                            await updateDoc(doc(db, "sessions", sessionId), { status: "past" });
+                            status = "past"; // Update local variable after Firestore update
+                        }
+
+                        let formattedDate = dateObj.toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit"
+                        });
+
+                        sessionsArray.push({ formattedDate, sessionTime, status, counsellorName, sessionId });
+                    }
+                }
+
+                // Sort sessions by date and time in descending order
+                sessionsArray.sort((a, b) => new Date(b.formattedDate) - new Date(a.formattedDate));
+
+                if (sessionsArray.length === 0) {
+                    sessionTable.innerHTML = `<tr><td colspan="5" style="text-align:center;">No previous sessions</td></tr>`;
+                } else {
+                    sessionsArray.forEach(({ formattedDate, sessionTime, status, counsellorName, sessionId }) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${formattedDate}</td>
+                            <td>${sessionTime}</td>
+                            <td>${counsellorName}</td>
+                            <td>${status}</td>
+                            <td><button id="addnotes" onclick="addNote('${sessionId}','${formattedDate}')">Add note about the session</button></td>
+                        `;
+                        sessionTable.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+            }
+        }
+
+        /**
+         * Converts a date and time string (e.g., "8:00 AM - 9:00 AM") into a Date object.
+         */
+        function extractStartTime(dateObj, sessionTime) {
+            let [startTime, period] = sessionTime.split(" - ")[0].split(" ");
+            let [hours, minutes] = startTime.split(":").map(Number);
+
+            if (period === "PM" && hours !== 12) hours += 12;
+            if (period === "AM" && hours === 12) hours = 0;
+
+            dateObj.setHours(hours, minutes, 0, 0);
+            return dateObj;
+        }
+
+        window.addNote=function addNote(sessionId,formattedDate) {
+            const modal=document.getElementById('session_note_modal');
+            console.log('date:', formattedDate);
+            if(modal){
+                console.log('Modal found');
+                const modalheader=modal.querySelector('h2')
+                modalheader.innerHTML=`Add Note about the session on ${formattedDate}`;
+
+                modal.style.display='block'
+                console.log('Modal Displayed for session for' ,sessionId)
+
+
+            }
+            else{
+                console.error('Modal not found')
+            }
+            
+        }
+
+        window.saveNote=async function saveNote(){
+            const note=document.getElementById("note").value;
+
+            if(note){
+                const noteRef=doc(db, "client_notes", currentsession)
+                await setDoc(noteRef,{
+                    sessionId:currentsession,
+                    userId:currentUser,
+                    note,
+                    timestamp:serverTimestamp()
+
+                });
+                document.getElementById("session_note_modal").style.display="none";
+                fetchPastSessions(currentUser);
+
+            }
+            else{
+
+            }
+
+
+        }
+        
+        window.back=async function back(){
+            const modal=document.getElementById('session_note_modal');
+            if(modal){
+                modal.style.display='none';
+            }
+
+        }
+        
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username">Sharon Kairu</h2>
+
+            <ul>
+                <li><a href="/counsellor" ><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>        
+                <li><a href="/previoussessions_counsellor "class="active"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+
+            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+        </nav>
+
+        <div class="main-content">
+            <div class="sessionstable">
+                <h2>Past Sessions</h2>
+                <table >
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Counsellor</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="session_details"></tbody>
+                </table>
+            </div>
+
+            <div class="modal" id="session_note_modal">
+                <div class="modal-content">               <h2></h2>
+                    <textarea id="note" placeholder="Add notes about the session"></textarea>
+                    </br>
+                    <button id="save_note" onclick="saveNote()">Save Notes</button>
+                    <button id="back" onclick="back()">Back</button>
+                </div> 
+            </div>
+
+        </div>
+    </div>
+
+    
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='signup.css') }}">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.firebasestorage.app",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+            };
+            const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('signup-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const fullName = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const phoneNumber = document.getElementById('number').value;
+                const level=document.getElementById('level').value;
+
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then(async (userCredential) => {
+                        const user = userCredential.user;
+                        console.log('Sign up successful:', user);
+
+                        await setDoc(doc(db, 'users', user.uid), {
+                            fullName: fullName,
+                            email: email,
+                            phoneNumber: phoneNumber,
+                            level:level,
+                            role:'client',
+                            createdAt: new Date().toISOString()
+                        });
+
+                      
+                        window.location.href = "/login";  
+                    })
+                    .catch((error) => {
+                        const errorMessage = error.message;
+                        document.getElementById('error-message').textContent = errorMessage;
+                    });
+            });
+        });
+    </script>
+
+</head>
+<header>
+    <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+    <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+
+</header>
+
+<body>
+   
+   <main>
+
+        <div class="signup-section">
+            <div class="signup-box">
+                
+                <img src="{{ url_for('static', filename='counsel2.jpg') }}"  id="counsell">
+                <div class="welcome">
+                    <h1 class="yellowtext">Welcome!</h1>
+                    <h2>We are excited to get started with you</h2>
+                    <p>Please sign up by entering your details</p>
+                    <br>
+                    <p>Already have an account? Login below</p>
+                    <p class="yellowtext"><a href="/login">Login here</a></p>
+                </div>
+            </div>
+
+            <div id="formsection">
+                    <h2 class="bluetext">SIGN UP</h2>
+                    <br>
+                    <br>
+
+                    <form id="signup-form">
+                        <label for="name">Full Name:</label>
+                        <input type="text" id="name" required>
+                        <br/>
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" required>
+                        <br/>
+                        <label for="number">Phone Number:</label>
+                        <input type="text" id="number" required>
+                        <br/>
+
+                        <label for="level">Current level you are studying for</label>
+                        <select id="level">
+                            <option value="undergrad">Under Graduate</option>
+                            <option value="masters">Masters</option>
+                            <option value="phd">PHD</option>
+                        </select>
+                        <br>
+
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                        
+
+                        <button type="submit" id="signupBt">Sign Up</button>
+                    </form>
+                <p id="error-message" class="error-message"></p>
+            </div>
+           
+        </div>
+    </main>
+
+   
+</body>
+</html>

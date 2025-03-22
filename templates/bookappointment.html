@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bookappointment.css') }}">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore,collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        async function loadCounsellors(){
+            const availableCounsellors=document.getElementById('available_counsellors');
+            availableCounsellors.innerHTML="";
+
+            const q=query(collection(db,'counsellors'));
+            const querySnapshot=await getDocs(q);
+
+            querySnapshot.forEach((doc)=>{
+                const data=doc.data();
+                const counsellorName=data.fullName;
+                const availableDays=data.availableDays;
+                const counsellorId = doc.id;
+                
+
+                const row=document.createElement('tr');
+                row.innerHTML=`
+                    <td>${counsellorName}</td>
+                    <td>${availableDays}</td>
+                    <td>
+                        <button class="availableHoursBt" id="availableHoursBt-${counsellorId}"> View Hours</button>
+                    </td>
+                   
+                `;
+
+                availableCounsellors.appendChild(row);
+
+                const button = document.getElementById(`availableHoursBt-${counsellorId}`);
+                button.addEventListener('click', function() {
+                    viewHours(counsellorId);
+        });
+            });
+        }
+
+        function viewHours(counsellorId) {
+            window.location.href = `/view_hours?counsellorId=${counsellorId}`;
+        }
+        
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    username.textContent = userData.fullName || "User";
+                } else {
+                    console.error("No user document found!");
+                    userInfoElement.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                userInfoElement.textContent = "User";
+            }
+        }
+
+    // Automatically fetch a quote when the page loads
+    document.addEventListener("DOMContentLoaded", async function () {
+       
+        onAuthStateChanged(auth, async (user) => {// Fetches the quote
+            if (user) {
+                        console.log(user.uid);
+                        const userId = user.uid;
+                        await displayUserName(userId);
+                        
+                    } else {
+                        window.location.href = "/login";
+                    }
+            })
+
+            loadCounsellors();
+        
+    });
+        
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username"></h2>
+
+            <ul>
+                <li><a href="/client" class="icon"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/bookappointment" class="active"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
+                <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+
+            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+        </nav>
+
+
+        <div class="main-content" id="maincontent">
+            
+                <div class="available_counsellors">
+                    <h2>Here are our available counsellors and the days they are available<h2></h2>
+                    <table id="available_counsellors_table">
+                        <thead>
+                            <tr>
+                                <th>Counsellor Name</th>
+                                <th>Available Days</th>
+                                <th>Available Hours</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="available_counsellors"></tbody>
+
+                    </table>    
+                        
+                </div>
+        </div>
+           
+    </div>
+
+    
+
+   
+</body>
+</html>

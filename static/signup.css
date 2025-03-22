@@ -1,0 +1,114 @@
+body{
+    background-color:#C6CCD8;
+}
+
+p{color:white
+}
+
+h2{
+    color:white;
+}
+.signup-section{
+    margin-top: 150px;
+    margin-left: 25%;
+    width: fit-content;
+    display: flex;
+    background-color: white;
+    justify-content: center;
+    
+    border-radius: 10px;
+}
+.signup-box{
+    width:350px;
+    margin-right: 50px;
+    border-radius: 10px;
+
+}
+.welcome{
+    display: flex; flex-direction: column; 
+    justify-content: flex-end;
+    padding:5px;
+    margin-top: 60px;
+    width:100%;
+    border-radius: 10px;
+    margin-right: 10px;
+    background-color: #2B3990
+}
+
+
+header{
+    display: grid;
+    background-color: white;
+    border-radius: 0,0,10,10;
+    padding: 20px 40px;
+    border-bottom: 1px solid #e0e0e0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    height: 100px;
+    
+}
+#logo{
+    margin-top: -5px;
+    display: block;
+    width:160px;
+    height:120px;
+}
+#header{
+    margin-left: 300px;
+    margin-top: -80px;
+}
+#formsection{
+    justify-content: center;
+    margin-right: 10px;
+}
+
+
+#counsell{
+    margin-top: 5px;
+    margin-left: 40px;
+    width: 250px;
+    height:250px;
+}
+a{
+
+    color: #FED500;
+}
+
+
+input{
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+select{
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+
+}
+#signupBt{
+    background-color: #FED500;
+    color: white;
+    padding: 14px 20px;
+    margin-top:40px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    border-radius: 10px;
+}
+.yellowtext{
+    color:#FED500;
+}
+.bluetext{
+    color:#2B3990;
+    margin-top: 30px;
+}

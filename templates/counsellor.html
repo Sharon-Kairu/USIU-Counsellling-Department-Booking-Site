@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login| Usiu Africa Counselling Department</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='counsellor.css') }}">
+    <script type="module">
+         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore,collection, query, where, getDocs, doc, getDoc,Timestamp, updateDoc, setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);// Firestore should be initialized here
+
+        let currentUserId = null;
+        let chosenSessionId = null;
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            
+            onAuthStateChanged(auth, async (user) => {// Fetches the quote
+                if (user) {
+                            console.log(user.uid);
+                            const userId = user.uid;
+                            currentUserId = userId;
+                            await displayUserName(userId);
+                            countSessions(userId);
+                            getSessions(userId);
+                            
+                            
+                            
+                        } else {
+                            window.location.href = "/login";
+                        }
+                })
+            
+        });
+
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    username.textContent = userData.fullName || "User";
+                } else {
+                    console.error("No user document found!");
+                    userInfoElement.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                userInfoElement.textContent = "User";
+            }
+        }
+
+        async function countSessions(userId) {
+      try {
+        const sessionsRef = collection(db, "sessions");
+        // Filter sessions where counsellorId equals the current user's ID
+        const sessionsQuery = query(sessionsRef, where("counsellorId", "==", userId));
+        const querySnapshot = await getDocs(sessionsQuery);
+
+        let sessionsToday = 0;
+        let sessionsWeek = 0;
+        let sessionsMonth = 0;
+        const now = new Date();
+
+        // Calculate current week's start (Monday) and end (Sunday)
+        const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+
+        // Iterate over sessions and count based on the sessionDate
+        querySnapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          if (data.sessionDate) {
+            let sessionDate;
+            // Convert Firestore Timestamp to JavaScript Date if applicable
+            if (typeof data.sessionDate.toDate === "function") {
+              sessionDate = data.sessionDate.toDate();
+            } else {
+              sessionDate = new Date(data.sessionDate);
+            }
+
+            // Count if session is today
+            if (
+              sessionDate.getFullYear() === now.getFullYear() &&
+              sessionDate.getMonth() === now.getMonth() &&
+              sessionDate.getDate() === now.getDate()
+            ) {
+              sessionsToday++;
+            }
+
+            // Count if session is in the current week
+            if (sessionDate >= monday && sessionDate <= sunday) {
+              sessionsWeek++;
+            }
+
+            // Count if session is in the current month
+            if (
+              sessionDate.getFullYear() === now.getFullYear() &&
+              sessionDate.getMonth() === now.getMonth()
+            ) {
+              sessionsMonth++;
+            }
+          }
+        });
+
+        // Update the UI elements with the counted numbers
+        document.querySelector("#today .number").textContent = sessionsToday;
+        document.querySelector("#week .number").textContent = sessionsWeek;
+        document.querySelector("#month .number").textContent = sessionsMonth;
+      } catch (error) {
+        console.error("Error counting sessions:", error);
+      }
+    }
+    async function getSessions(userId) {
+    const session = document.getElementById('sessionsTable');
+    session.innerHTML = "";
+
+    const sessionRef = query(collection(db, 'sessions'), where("counsellorId", "==", userId));
+    const querySnapshot = await getDocs(sessionRef);
+
+    let sessionsArray = []; // Array to store session data
+    const now = new Date();
+
+    for (const docSnap of querySnapshot.docs) {
+        const data = docSnap.data();
+        let rawDate = data.sessionDate;
+        let status = data.status;
+        let sessionTime = data.time;
+        let clientId = data.userId;
+        let sessionId = docSnap.id;
+        chosenSessionId = sessionId;         
+
+        let clientName = "Unknown";
+        if (clientId) {
+            const clientRef = doc(db, 'users', clientId);
+            const clientDoc = await getDoc(clientRef);
+            if (clientDoc.exists()) {
+                const clientData = clientDoc.data();
+                clientName = clientData.fullName;
+                            }
+        }
+        let dateObj = rawDate instanceof Timestamp ? rawDate.toDate() : new Date(rawDate);
+
+
+        // Extract session start time
+        let sessionStartTime = extractStartTime(dateObj, sessionTime);
+
+        // **Filter out past sessions**
+        if (sessionStartTime > now) {
+            let formattedDate = dateObj.toLocaleString("en-US", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+
+            sessionsArray.push({ formattedDate, dateObj, sessionTime, status, clientName, sessionId });
+        }
+    }
+
+    // Sort sessions by date
+    sessionsArray.sort((a, b) => a.sessionDate - b.sessionDate);
+
+    // Clear table and add sorted upcoming sessions
+    session.innerHTML = "";
+    if (sessionsArray.length === 0) {
+        session.innerHTML = `<tr><td colspan="5" style="text-align:center;">No upcoming sessions</td></tr>`;
+    } else {
+        sessionsArray.forEach(({ formattedDate, sessionTime, status, clientName, sessionId }) => {
+            const row = document.createElement('tr');
+
+            // Determine text color for status
+            let statusColor = status.toLowerCase() === "scheduled" ? "green" : "red";
+            let isCanceled = status.toLowerCase() === "canceled";
+
+            row.innerHTML = `
+                <td>${clientName}</td>
+                <td>${formattedDate}</td>
+                <td>${sessionTime}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${status}</td>
+                <td>
+                    <button id="cancelSessionBt" onclick="cancelsession('${sessionId}', '${formattedDate}')" ${isCanceled ? "disabled" : ""}>
+                        Cancel Session
+                    </button>
+                </td>
+            `;
+            session.appendChild(row);
+        });
+    }
+}
+
+
+    
+
+    function extractStartTime(dateObj, sessionTime) {
+    let [startTime, period] = sessionTime.split(" - ")[0].split(" ");
+    let [hours, minutes] = startTime.split(":").map(Number);
+
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+
+    dateObj.setHours(hours, minutes, 0, 0);
+    return dateObj;
+}
+
+
+    
+
+
+    window.cancelsession = function cancelsession(sessionId,formattedDate) {
+            
+            const cancelmodal = document.getElementById('modal');
+            if (cancelmodal) {
+                const modalheader=modal.querySelector('h2');
+                modalheader.innerHTML=`Cancel session scheduled for ${formattedDate}`;
+                cancelmodal.style.display = 'block';
+                console.log("Modal displayed for session:", sessionId);
+            } else {
+                console.error("Modal not found");
+            }
+        };
+
+
+
+        
+    </script>
+
+</head>
+
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+        <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
+    
+    </header>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+
+            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <h2 class ="yellowtext "id="username">Sharon Kairu</h2>
+
+            <ul>
+                <li><a href="/counsellor" class="active"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>        
+                <li><a href="/previoussessions_counsellor"><span class="active"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+            </ul>
+
+            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+        </nav>
+
+        <div class="main-content">
+
+            <section class="cards">
+
+                <div class="card" id="today">
+                    <h3>Sessions Today</h3>
+                    <h2 class="number"></h2> 
+                </div>
+
+                <div class="card" id="week">
+                    <h3>Sessions This Week</h3>
+                    <h2 class="number"></h2> 
+                </div>
+
+                <div class="card" id="month">
+                    <h3>Sessions This Month</h3>
+                    <h2 class="number"></h2> 
+                </div>
+            </section>
+
+            <div class="sessionDetails">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="sessionsTable"></tbody>
+                       
+                </table>
+            </div>
+
+            <div class="modal">
+                <h2>Are you sure you want to cancel the session?</h2>
+
+                <button id="confirmCancelBt" type="submit">Confirm </button>
+                <button id="back">Back</button>
+            </div>
+
+
+        </div>
+    </div>
+
+    
+</body>
+</html>
