@@ -80,6 +80,10 @@ header{
     background-color: #C6CCD8;
     
 }
+a{
+
+    color: #FED500;
+}
 
 .sidebar ul li a .icon {
     font-size: 24px;
@@ -158,4 +162,9 @@ tr:hover {
     background-color: #2B3990;
     border-radius: 10px;
     color: white;
+}
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
 }

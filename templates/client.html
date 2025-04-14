@@ -8,7 +8,7 @@
     <script type="module">
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword ,signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore,collection, query, where, getDocs, doc, getDoc,Timestamp, updateDoc, setDoc,serverTimestamp} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     
         const firebaseConfig = {
@@ -220,8 +220,11 @@ function extractStartTime(dateObj, sessionTime) {
             if (sessionDocSnap.exists()) {
                 // Update session status to "canceled"
                 await updateDoc(sessionDocRef, {
-                    status: "canceled"
+                    status: "canceled",
+                    canceledBy: currentUserId,
+                    canceledAt: serverTimestamp()
                 });
+                
 
                 // Store cancellation reason in Client_Reasons collection
                 const reasonRef = doc(db, "Client_Reasons", currentSessionId);
@@ -233,7 +236,7 @@ function extractStartTime(dateObj, sessionTime) {
                     timestamp: serverTimestamp()
                 });
 
-                alert("Session successfully canceled.");
+                console.log("Session successfully canceled.");
                 document.getElementById('modal').style.display = 'none'; // Close modal
                 getSessions(currentUserId); // Refresh session list
             } else {
@@ -252,6 +255,29 @@ function extractStartTime(dateObj, sessionTime) {
 document.getElementById('back').addEventListener('click', function() {
     document.getElementById('modal').style.display = 'none';
 });
+
+document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                // Clear session/local storage
+                sessionStorage.clear();
+                localStorage.clear();
+
+                // Redirect user to login page
+                window.location.href = "/login";
+
+                // Clear history to prevent going back
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
 
         
 
@@ -279,7 +305,9 @@ document.getElementById('back').addEventListener('click', function() {
                 <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
             </ul>
 
-            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"> Chenge User Details</a>
+            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"> Change User Details</a>
+            
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
         </nav>
 

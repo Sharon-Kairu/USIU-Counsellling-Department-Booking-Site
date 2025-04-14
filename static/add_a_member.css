@@ -85,6 +85,10 @@ header{
     font-size: 24px;
     margin-right: 20px;
 }
+a{
+
+    color: #FED500;
+}
 
 #user{
     width:100px;
@@ -140,4 +144,9 @@ select{
     cursor: pointer;
     width: 100%;
     border-radius: 10px;
+}
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
 }

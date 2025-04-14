@@ -6,6 +6,137 @@
     <title>Login| Usiu Africa Counselling Department</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='remove_a_member.css') }}">
     <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword ,signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore,collection, query, where, getDocs, doc, getDoc,Timestamp, updateDoc, setDoc,serverTimestamp,deleteDoc} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7d1qB8MrB4eBv9GJt-s_p6gZqKm05WHY",
+            authDomain: "usiu-counselling-app.firebaseapp.com",
+            projectId: "usiu-counselling-app",
+            storageBucket: "usiu-counselling-app.appspot.com",
+            messagingSenderId: "1013701067761",
+            appId: "1:1013701067761:web:671c41ea82cdc8f2f43a50",
+            measurementId: "G-5J0EJVH1SD"
+        };
+    
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);// Firestore should be initialized here
+
+        let currentUserId = null;
+        let chosenSessionId = null;
+        let chosenMemberId = null;
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            
+            onAuthStateChanged(auth, async (user) => {// Fetches the quote
+                if (user) {
+                            console.log(user.uid);
+                            const userId = user.uid;
+                            currentUserId = userId;
+                            await displayUserName(userId);
+                            fetchMembers();
+                           
+                            
+                            
+                            
+                        } else {
+                            window.location.href = "/login";
+                        }
+                })
+            
+        });
+
+        async function displayUserName(userId) {
+            const username = document.getElementById('username');
+            try {
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    username.textContent = userData.fullName || "User";
+                } else {
+                    console.error("No user document found!");
+                    userInfoElement.textContent = "User";
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                userInfoElement.textContent = "User";
+            }
+        }
+
+        async function fetchMembers(){
+            const membersTable = document.getElementById('members_table');
+            const membersQuery = query(collection(db, "users"), where("role", "!=", "client"));
+            const membersQuerySnapshot = await getDocs(membersQuery);
+            membersQuerySnapshot.forEach((doc) => {
+                const memberData = doc.data();
+                const memberId=doc.id;
+                chosenMemberId = memberId;
+                const name=memberData.fullName;
+                const memberRow = document.createElement('tr');
+                memberRow.innerHTML = `
+                    <td>${memberData.fullName}</td>
+                    <td>${memberData.email}</td>
+                    <td>${memberData.role}</td>
+                    <td><button id="removeMemberBt" onclick="removeMember('${memberId}','${name}')">Remove</button></td>
+                `;
+                membersTable.appendChild(memberRow);
+            });
+        };
+
+        window.removeMember= function removeMember(memberId, name){
+            const modal=document.getElementById('remove_member_modal');
+            if(modal){
+                const modalheader=modal.querySelector('h2');
+                console.log(memberId);
+                modalheader.textContent=`Are you sure you want to remove ${name} from the members?`;
+                modal.style.display='block';
+            }
+        }
+
+        document.getElementById('yes').addEventListener('click', async function() {
+            const modal=document.getElementById('remove_member_modal');
+            if(modal){
+                modal.style.display='none';
+            }
+            try {
+                console.log(chosenMemberId);
+                await deleteDoc(doc(db, "users", chosenMemberId));
+                alert("Member removed successfully");
+                window.location.reload();
+            } catch (error) {
+                console.error("Error removing document: ", error);
+            }
+        });
+
+        document.getElementById('no').addEventListener('click', function() {
+            document.getElementById('modal').style.display = 'none';
+        });
+        document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                // Clear session/local storage
+                sessionStorage.clear();
+                localStorage.clear();
+
+                // Redirect user to login page
+                window.location.href = "/login";
+
+                // Clear history to prevent going back
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
         
     </script>
 
@@ -25,13 +156,42 @@
             <h2 class ="yellowtext "id="username">Sharon Kairu</h2>
 
             <ul>
-                <li><a href="/admin"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
-                <li><a href="/add_a_member"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
-                <li><a href="/remove_a_member"  class="active"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
+                <li><a href="/admin" ><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
+                <li><a href="/add_a_member"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Add a member</span></a></li>
+                <li><a href="/remove_a_member" class="active"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Remove a member</span></a></li>
             </ul>
 
-            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"> Chenge User Details</a>
+            
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
+
+        <div class="main-content">
+            <div class="members">
+                <h1 class="yellowtext">Remove a member from the members below</h1>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Member Name</th>
+                            <th>Member Email</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="members_table"></tbody>
+                    
+                </table>
+
+                <div class="modal" id="remove_member_modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h2></h2>
+                        <button class="button" id="yes">Remove </button>
+                        <button class="button" id="no">Go Back</button>
+                    </div>
+                </div>
+        </div>
     </div>
 
     

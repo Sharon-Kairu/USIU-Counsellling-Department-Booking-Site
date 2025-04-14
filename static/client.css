@@ -217,3 +217,8 @@ input{
     width: 80%;
     max-width: 500px;
 }
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
+}

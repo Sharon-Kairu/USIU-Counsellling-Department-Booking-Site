@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='previoussessions_counsellor.css') }}">
     <script type="module">
          import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged,signOut  } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, doc, getDoc,Timestamp,updateDoc,serverTimestamp,setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -72,6 +72,7 @@
                     let rawDate = sessionData.sessionDate;
                     let sessionTime = sessionData.time; // E.g., "8:00 AM - 9:00 AM"
                     let status = sessionData.status;
+                    let clientId=sessionData.userId;
                     let counsellorId = sessionData.counsellorId;
                     let sessionId = docSnap.id;
                     currentsession=sessionId
@@ -107,7 +108,7 @@
                             day: "2-digit"
                         });
 
-                        sessionsArray.push({ formattedDate, sessionTime, status, counsellorName, sessionId });
+                        sessionsArray.push({ formattedDate, sessionTime,  clientName, sessionId });
                     }
                 }
 
@@ -117,13 +118,13 @@
                 if (sessionsArray.length === 0) {
                     sessionTable.innerHTML = `<tr><td colspan="5" style="text-align:center;">No previous sessions</td></tr>`;
                 } else {
-                    sessionsArray.forEach(({ formattedDate, sessionTime, status, counsellorName, sessionId }) => {
+                    sessionsArray.forEach(({ formattedDate, sessionTime, clientName, sessionId }) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
+                            <td>${clientName}</td>
                             <td>${formattedDate}</td>
                             <td>${sessionTime}</td>
-                            <td>${counsellorName}</td>
-                            <td>${status}</td>
+                            
                             <td><button id="addnotes" onclick="addNote('${sessionId}','${formattedDate}')">Add note about the session</button></td>
                         `;
                         sessionTable.appendChild(row);
@@ -171,7 +172,7 @@
             const note=document.getElementById("note").value;
 
             if(note){
-                const noteRef=doc(db, "client_notes", currentsession)
+                const noteRef=doc(db, "counsellor_notes", currentsession)
                 await setDoc(noteRef,{
                     sessionId:currentsession,
                     userId:currentUser,
@@ -197,6 +198,28 @@
             }
 
         }
+        document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                // Clear session/local storage
+                sessionStorage.clear();
+                localStorage.clear();
+
+                // Redirect user to login page
+                window.location.href = "/login";
+
+                // Clear history to prevent going back
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
         
     </script>
 
@@ -221,6 +244,7 @@
             </ul>
 
             <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
 
         <div class="main-content">
@@ -229,11 +253,11 @@
                 <table >
                     <thead>
                         <tr>
+                            <th>Client</th>
                             <th>Date</th>
                             <th>Time</th>
-                            <th>Counsellor</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="session_details"></tbody>

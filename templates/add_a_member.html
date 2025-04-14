@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='add_a_member.css') }}">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword ,signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -105,6 +105,28 @@
                     });
             });
         });
+        document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                // Clear session/local storage
+                sessionStorage.clear();
+                localStorage.clear();
+
+                // Redirect user to login page
+                window.location.href = "/login";
+
+                // Clear history to prevent going back
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
 
         
     </script>
@@ -130,7 +152,9 @@
                 <li><a href="/remove_a_member"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text">Remove a member</span></a></li>
             </ul>
 
-            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+            <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"> Change User Details</a>
+            
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
 
         <!--Main Content-->

@@ -184,6 +184,15 @@ def add_a_member():
 
     return render_template('add_a_member.html')
 
+@app.route('/remove_a_member', methods=['GET','POST'])
+def remove_a_member():
+    if 'user_id' not in session:
+        logging.debug("User not in session, redirecting to login")
+        return redirect(url_for('login'))
+
+    logging.debug(f"User {session['user_id']} in session, rendering remove_a_member.html")
+    return render_template('remove_a_member.html')
+
 
 @app.route('/counsellor', methods=['GET','POST'])
 def counsellor():

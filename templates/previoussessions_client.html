@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='previoussessions_client.css') }}">
     <script type="module" defer>
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged,signOut  } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, collection, query, where, getDocs, doc, getDoc,Timestamp,updateDoc,serverTimestamp,setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -195,6 +195,28 @@
             }
 
         }
+        document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                // Clear session/local storage
+                sessionStorage.clear();
+                localStorage.clear();
+
+                // Redirect user to login page
+                window.location.href = "/login";
+
+                // Clear history to prevent going back
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
         
 
     </script>
@@ -214,6 +236,7 @@
                 <li><a href="/previoussessions_client" class="active"><i class='bx bx-list-ul'></i> Previous Sessions</a></li>
             </ul>
             <h3 class="yellowtext" id="profilechange"><a href="/change_user_details"></a>Change User Details</h3>
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
         </nav>
         <div class="main-content">

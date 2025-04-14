@@ -30,8 +30,6 @@
             if (user) {
                         console.log(user.uid);
                         const userId = user.uid;
-                        
-                        await displayUserName(userId);
 
                         
                         try{
@@ -58,11 +56,7 @@
                     }
             })
 
-            async function displayUserName(userId){
-                const userDoc = await getDoc(doc(db, 'users', userId));
-                const userData = userDoc.data();
-                document.getElementById('username').textContent = userData.fullName;
-            }
+        
 
             window.editDetails= async function editDetails(userId){
                 const modal=document.getElementById('editProfileModal');
@@ -142,20 +136,7 @@
     
     </header>
     <div class="container">
-        <!-- Sidebar -->
-        <nav class="sidebar" id="sidebar">
-
-            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
-            <h2 class ="yellowtext "id="username"></h2>
-
-            <ul>
-                <li><a href="/client" class="active"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
-                <li><a href="/bookappointment"><span class="icon"><i class='bx bx-leaf'></i></span><span class="text"> Book appointment</span></a></li>
-                <li><a href="/previoussessions_client"><span class="icon"><i class='bx bx-list-ul'></i></span><span class="text"> Previous Sessions</span></a></li>
-            </ul>
-
-            <h3 class ="yellowtext "id="profilechange">Change user details</h3>
-        </nav>
+       
 
         <div class="main-content">
             <div class="user-details" id="userDetails">

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='bookappointment.css') }}">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged,signInWithEmailAndPassword,signOut  } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore,collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
     
         const firebaseConfig = {
@@ -83,7 +83,7 @@
     // Automatically fetch a quote when the page loads
     document.addEventListener("DOMContentLoaded", async function () {
        
-        onAuthStateChanged(auth, async (user) => {// Fetches the quote
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                         console.log(user.uid);
                         const userId = user.uid;
@@ -97,6 +97,25 @@
             loadCounsellors();
         
     });
+    document.getElementById('logout').addEventListener('click', async function() {
+            try {
+                await signOut(auth); // Firebase sign-out method
+                console.log("User successfully logged out.");
+
+                
+                sessionStorage.clear();
+                localStorage.clear();
+                window.location.href = "/login";
+
+                setTimeout(() => {
+                    window.history.pushState(null, null, "login.html");
+                }, 100);
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        });
+
         
     </script>
 
@@ -122,6 +141,7 @@
             </ul>
 
             <h3 class ="yellowtext "id="profilechange">Change user details</h3>
+            <h4 class ="yellowtext "id="logout" style="cursor: pointer;">Logout</h4>
         </nav>
 
 

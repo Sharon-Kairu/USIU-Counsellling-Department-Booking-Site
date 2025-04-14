@@ -85,6 +85,10 @@ header{
     font-size: 24px;
     margin-right: 20px;
 }
+a{
+
+    color: #FED500;
+}
 
 #user{
     width:100px;
@@ -100,8 +104,164 @@ header{
 .bluetext{
     color:#2B3990
 }
-#maincontent{
+.main-content{
     margin-left: 300px;
-    margin-top: 100px;
+    margin-top: 150px;
     margin-right: 100px;  
+}
+
+.cards {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.card {
+    background-color: white;
+    padding: 10px;
+    flex: 1;
+    margin-right: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+}
+
+.card:last-child {
+    margin-right: 0;
+}
+
+.card h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+
+table {
+    padding: 12px;
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+th {
+    color: #FED500;
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+tr{
+    padding: 10px;
+}
+tr:hover {
+    background-color: #f6ecec;
+}
+.sessionDetails{
+    margin-top: 20px;
+    background-color: white;
+    padding:10px;
+    border-radius: 10px;
+}
+#cancelSessionBt{
+    border-radius: 5px;
+    color:white;
+    background-color:#ba1e0f;
+    padding:10px;
+}
+#cancelSessionBt:disabled{
+    border-radius: 5px;
+    color:white;
+    background-color:#58100a;
+    padding:10px;
+}
+.modal{
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+}
+/* Style the dropdown container */
+.filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Style the dropdowns */
+select {
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 2px solid #2B3990;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    outline: none;
+}
+
+/* Dropdown focus effect */
+select:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Hover effect */
+select:hover {
+    background-color: #f8f9fa;
+}
+
+/* Style for when dropdown is disabled */
+select:disabled {
+    background-color: #ddd;
+    cursor: not-allowed;
+}
+
+/* Ensure the dropdowns are responsive */
+@media (max-width: 768px) {
+    .filter-container {
+        flex-direction: column;
+    }
+    
+    select {
+        width: 100%;
+    }
+}
+
+
+#confirmCancelBt{
+    color:white;
+    background-color:#2B3990;
+    border-radius: 10px;
+    padding: 10px;
+    border: none;
+}
+#back{
+    margin-top:20px;
+    border-radius: 5px;
+    color:white;
+    background-color:#ba1e0f;
+    padding:10px;
+}
+
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
 }

@@ -32,7 +32,10 @@ header{
 
 
 .sidebar {
-    align-items: center;
+    align-items: center;padding-top: 30px;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
     margin-top: 50px;
     width: 250px;
     background-color: #2B3990;
@@ -85,7 +88,10 @@ header{
     font-size: 24px;
     margin-right: 20px;
 }
+a{
 
+    color: #FED500;
+}
 #user{
     width:100px;
     height: 100px;
@@ -154,7 +160,7 @@ tr:hover {
 }
 #addnotes{
     color:white;
-    background-color:#43eb15;
+    background-color:#2B3990;
     border-radius: 10px;
     padding: 10px;
     border: none;
@@ -181,4 +187,9 @@ tr:hover {
     color:white;
     background-color:#2B3990;
     padding:10px;
+}
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
 }

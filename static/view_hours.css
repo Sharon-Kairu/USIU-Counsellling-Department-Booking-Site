@@ -215,3 +215,8 @@ input{
     width: 100%;
     border-radius: 10px;
 }
+#logout{
+    margin-top:100px;
+    align-self: baseline;
+    text-decoration: underline;
+}
