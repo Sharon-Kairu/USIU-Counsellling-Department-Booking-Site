@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login| Usiu Africa Counselling Department</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
@@ -70,7 +70,7 @@
 
 </head>
 <header>
-    <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="Usiu Logo" id="logo">
+    <img src="{{ url_for('static', filename='images/USIU Logo.png') }}" alt="Usiu Logo" id="logo">
     <h2 class ="yellowtext "id="header">USIU COUNSELLING DEPARTMENT</h2>
 
 </header>
@@ -81,7 +81,7 @@
 
         <div class="login-section">
             <div class="login-box">   
-                <img src="{{ url_for('static', filename='counsel2.jpg') }}" id="counsell">
+                <img src="{{ url_for('static', filename='images/counsel2.jpg') }}" id="counsell">
 
                 <div class="welcome">
                     <h1 class="yellowtext">Welcome Back!</h1>

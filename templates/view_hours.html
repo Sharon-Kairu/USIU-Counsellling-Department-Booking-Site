@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | USIU Africa Counselling Department</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='view_hours.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/view_hours.css') }}">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword ,signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
@@ -253,13 +253,13 @@
 
 <body>
     <header>
-        <img src="{{ url_for('static', filename='USIU Logo.png') }}" alt="USIU Logo" id="logo">
+        <img src="{{ url_for('static', filename='images/USIU Logo.png') }}" alt="USIU Logo" id="logo">
         <h2 class="yellowtext" id="header">USIU COUNSELLING DEPARTMENT</h2>
     </header>
     <div class="container">
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
-            <img src="{{ url_for('static', filename='boy.png') }}" alt="user" id="user">
+            <img src="{{ url_for('static', filename='images/boy.png') }}" alt="user" id="user">
             <h2 class="yellowtext" id="username"></h2>
             <ul>
                 <li><a href="/client"><span class="icon"><i class='bx bx-home'></i></span><span class="text"> Home</span></a></li>
